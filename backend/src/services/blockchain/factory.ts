@@ -35,14 +35,17 @@ export class FactoryService {
   private adminKeypair: Keypair;
 
   constructor() {
-    const rpcUrl = process.env.STELLAR_SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
+    const rpcUrl =
+      process.env.STELLAR_SOROBAN_RPC_URL ||
+      'https://soroban-testnet.stellar.org';
     const network = process.env.STELLAR_NETWORK || 'testnet';
 
-    this.rpcServer = new rpc.Server(rpcUrl, { allowHttp: rpcUrl.includes('localhost') });
+    this.rpcServer = new rpc.Server(rpcUrl, {
+      allowHttp: rpcUrl.includes('localhost'),
+    });
     this.factoryContractId = process.env.FACTORY_CONTRACT_ADDRESS || '';
-    this.networkPassphrase = network === 'mainnet'
-      ? Networks.PUBLIC
-      : Networks.TESTNET;
+    this.networkPassphrase =
+      network === 'mainnet' ? Networks.PUBLIC : Networks.TESTNET;
 
     // Admin keypair for signing contract calls
     const adminSecret = process.env.ADMIN_WALLET_SECRET;
@@ -65,13 +68,17 @@ export class FactoryService {
     try {
       // Convert timestamps to Unix time (seconds)
       const closingTimeUnix = Math.floor(params.closingTime.getTime() / 1000);
-      const resolutionTimeUnix = Math.floor(params.resolutionTime.getTime() / 1000);
+      const resolutionTimeUnix = Math.floor(
+        params.resolutionTime.getTime() / 1000
+      );
 
       // Build contract arguments
       const contract = new Contract(this.factoryContractId);
 
       // Get source account
-      const sourceAccount = await this.rpcServer.getAccount(this.adminKeypair.publicKey());
+      const sourceAccount = await this.rpcServer.getAccount(
+        this.adminKeypair.publicKey()
+      );
 
       // Build the contract call operation
       const builtTransaction = new TransactionBuilder(sourceAccount, {
@@ -93,13 +100,15 @@ export class FactoryService {
         .build();
 
       // Prepare transaction for the network
-      const preparedTransaction = await this.rpcServer.prepareTransaction(builtTransaction);
+      const preparedTransaction =
+        await this.rpcServer.prepareTransaction(builtTransaction);
 
       // Sign transaction
       preparedTransaction.sign(this.adminKeypair);
 
       // Submit transaction
-      const response = await this.rpcServer.sendTransaction(preparedTransaction);
+      const response =
+        await this.rpcServer.sendTransaction(preparedTransaction);
 
       if (response.status === 'PENDING') {
         // Wait for transaction confirmation
@@ -120,7 +129,9 @@ export class FactoryService {
           throw new Error(`Transaction failed: ${result.status}`);
         }
       } else if (response.status === 'ERROR') {
-        throw new Error(`Transaction submission error: ${response.errorResult}`);
+        throw new Error(
+          `Transaction submission error: ${response.errorResult}`
+        );
       } else {
         throw new Error(`Unexpected response status: ${response.status}`);
       }
@@ -137,7 +148,10 @@ export class FactoryService {
    * @param txHash - Transaction hash
    * @returns Transaction result
    */
-  private async waitForTransaction(txHash: string, maxRetries: number = 10): Promise<any> {
+  private async waitForTransaction(
+    txHash: string,
+    maxRetries: number = 10
+  ): Promise<any> {
     let retries = 0;
 
     while (retries < maxRetries) {
@@ -206,7 +220,7 @@ export class FactoryService {
    * @param ms - Milliseconds to sleep
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -216,7 +230,9 @@ export class FactoryService {
   async getMarketCount(): Promise<number> {
     try {
       const contract = new Contract(this.factoryContractId);
-      const sourceAccount = await this.rpcServer.getAccount(this.adminKeypair.publicKey());
+      const sourceAccount = await this.rpcServer.getAccount(
+        this.adminKeypair.publicKey()
+      );
 
       const builtTransaction = new TransactionBuilder(sourceAccount, {
         fee: BASE_FEE,
@@ -226,12 +242,14 @@ export class FactoryService {
         .setTimeout(30)
         .build();
 
-      const simulationResponse = await this.rpcServer.simulateTransaction(builtTransaction);
+      const simulationResponse =
+        await this.rpcServer.simulateTransaction(builtTransaction);
 
-      if (rpc.Api.isSimulationSuccess(simulationResponse)) {
-        const result = simulationResponse.result?.retval;
-        if (!result) throw new Error('Failed to get market count: no return value');
-        return scValToNative(result) as number;
+      if (
+        rpc.Api.isSimulationSuccess(simulationResponse) &&
+        simulationResponse.result?.retval
+      ) {
+        return scValToNative(simulationResponse.result.retval) as number;
       }
 
       throw new Error('Failed to get market count');

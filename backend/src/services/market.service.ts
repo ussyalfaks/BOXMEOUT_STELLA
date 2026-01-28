@@ -75,7 +75,9 @@ export class MarketService {
     }
 
     // Default resolution time to 24 hours after closing if not provided
-    const resolutionTime = data.resolutionTime || new Date(data.closingAt.getTime() + 24 * 60 * 60 * 1000);
+    const resolutionTime =
+      data.resolutionTime ||
+      new Date(data.closingAt.getTime() + 24 * 60 * 60 * 1000);
 
     // Validate resolution time is after closing time
     if (resolutionTime <= data.closingAt) {
@@ -117,7 +119,6 @@ export class MarketService {
       );
     }
   }
-
 
   async getMarketDetails(marketId: string) {
     const market = await this.marketRepository.findById(marketId);
